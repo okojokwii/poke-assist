@@ -1,0 +1,41 @@
+{
+  "name": "poke-assist",
+  "version": "1.0.0",
+  "description": "ポケモンチャンピオンズの対戦アシスト（個人用）",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "build:screen": "swiftc -O tools/screen/main.swift -o tools/screen/pa-screen",
+    "build:names": "tsx scripts/build-names.ts",
+    "fetch:usage": "tsx scripts/fetch-usage.ts",
+    "calc": "tsx scripts/calc.ts",
+    "advise": "tsx src/advisor/main.ts",
+    "summarize": "tsx scripts/summarize.ts",
+    "verify": "tsx scripts/verify-damage.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/okojokwii/poke-assist.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/okojokwii/poke-assist/issues"
+  },
+  "homepage": "https://github.com/okojokwii/poke-assist#readme",
+  "dependencies": {
+    "@smogon/calc": "^0.12.0",
+    "pokemon-showdown": "^0.11.11"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "private": true
+}

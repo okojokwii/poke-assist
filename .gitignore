@@ -6,3 +6,4 @@ __pycache__/
 # スクショ・試合の生画像は容量が大きいので入れない
 captures/
 .env
+data/raw/
