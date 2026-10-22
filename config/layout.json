@@ -1,24 +1,11 @@
 {
   "verified": false,
-  "note": "2026-10-22 に実機の選出画面（1720×872 で撮影）で一部調整。座標はすべて窓に対する 0〜1 の割合（左上原点）。npm run calibrate -- <png> で確かめる。",
-  "oppSideMaxY": 0.5,
-  "hpBarFromName": {
-    "dx": 0.0,
-    "dy": 0.01,
-    "w": 0.3,
-    "h": 0.025
-  },
+  "note": "2026-10-22 に実機の画面（1720×872 で撮影）で合わせた。結果の画面は「○○との / 勝負に / 勝った！」（別の行。WIN と LOSE は両者の札として同時に出るので使わない）。座標は窓に対する 0〜1 の割合（左上原点）。npm run calibrate -- <png> で確かめる。",
   "resultKeywords": [
-    "かち",
-    "まけ",
-    "勝ち",
-    "負け",
-    "WIN",
-    "LOSE",
-    "ひきわけ",
+    "勝った",
+    "負けた",
     "引き分け"
   ],
-  "previewMinSpecies": 4,
   "moveSelectMinMoves": 2,
   "previewKeywords": [
     "選出してください",
@@ -34,5 +21,20 @@
     "typesX": 0.83,
     "typesW": 0.045,
     "typesH": 0.045
+  },
+  "commandKeywords": [
+    "たたかう"
+  ],
+  "oppInfo": {
+    "x0": 0.7,
+    "y0": 0.08,
+    "x1": 1.0,
+    "y1": 0.3
+  },
+  "myInfo": {
+    "x0": 0.0,
+    "y0": 0.78,
+    "x1": 0.35,
+    "y1": 1.0
   }
 }

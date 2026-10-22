@@ -43,10 +43,13 @@ const species = buildTable(
   (id) =>
     FORM_OVERRIDES[id] ?? gen.species.get(id as never)?.name ?? allSpecies.find((s) => toID(s.name).startsWith(id))?.name,
 );
-// メガシンカ後の名前は「メガ○○」。チャンピオンズにあるメガだけ足す（X/Y・Z の表示名は未確認なので足さない）
+// メガシンカ後の名前は「メガ○○」。チャンピオンズにあるメガだけ足す
+// X/Y/Z があるものは「メガリザードンY」の形（ゲームの表示で確認: 2026-10-22 時点では未確認）
 for (const [ja, en] of Object.entries({ ...species })) {
-  const mega = gen.species.get(toID(`${en}-Mega`) as never);
-  if (mega) species[`メガ${ja}`] = mega.name;
+  for (const suffix of ['', 'X', 'Y', 'Z']) {
+    const mega = gen.species.get(toID(`${en}-Mega${suffix ? `-${suffix}` : ''}`) as never);
+    if (mega) species[`メガ${ja}${suffix}`] = mega.name;
+  }
 }
 
 const table = {

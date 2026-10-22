@@ -145,7 +145,7 @@ function render(v){
  } else $('oppbox').hidden=true;
  let h='';
  if(v.board){h+='<section><h2>ターン '+v.board.turn+'（'+v.board.depth+'手先・'+v.board.ms+'ms）</h2>'+esc(v.board.mine)+' ／ 相手 '+esc(v.board.opp)+'</section>';}
- if(v.advice){h+='<section><h2>候補（決めるのは本人）</h2>'+v.advice.map(a=>'<div class=cand><b>'+esc(a.label)+'</b><span class=prob>'+Math.round(a.prob*100)+'%</span><span class=reason>'+esc(a.reason)+'</span></div>').join('')+'</section>';}
+ if(v.advice){h+='<section><h2>候補（決めるのは本人。％は「この割合で混ぜると読まれにくい」配分）</h2>'+v.advice.map(a=>'<div class=cand><b>'+esc(a.label)+'</b><span class=prob>'+Math.round(a.prob*100)+'%</span><span class=reason>'+esc(a.reason)+'</span></div>').join('')+'</section>';}
  if(v.oppPrediction){h+='<section><h2>相手の手の予想</h2>'+v.oppPrediction.map(p=>esc(p.label)+' <span class=prob>'+Math.round(p.prob*100)+'%</span>').join(' ／ ')+'</section>';}
  if(v.selection){const s=v.selection;h+='<section><h2>選出の候補</h2>'+s.picks.map(p=>'<div>'+esc(p.mons.join('・'))+' <span class=reason>先発 '+esc(p.lead)+'</span></div>').join('')+(s.dangers.length?'<div class=warn>誰も有利を取れない: '+esc(s.dangers.join('・'))+'</div>':'')+s.notes.map(n=>'<div class=reason>'+esc(n)+'</div>').join('')+'</section>';}
  if(v.claudeNote){h+='<section><h2>Claude</h2><div style="white-space:pre-wrap">'+esc(v.claudeNote)+'</div></section>';}

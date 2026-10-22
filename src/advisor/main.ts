@@ -6,10 +6,10 @@
 //
 // 普段は窓があるかを見るだけ。画面が変わった時だけ文字認識をし、技選択の画面で探索を回す。
 import { existsSync, mkdirSync, readdirSync, copyFileSync, readFileSync } from 'node:fs';
-import { loadTeam } from '../dex/sets.js';
+import { loadTeam, toCalcPokemon } from '../dex/sets.js';
 import { loadLatestUsage } from '../usage/usage.js';
 import { screen, hashDistance } from '../reader/screen.js';
-import { hpBarRegion, loadLayout, readBoxes, splitSides, type ReadResult } from '../reader/parse.js';
+import { loadLayout, readBoxes } from '../reader/parse.js';
 import { search } from '../engine/search.js';
 import { explain, predictOpponent, type Advice } from '../engine/explain.js';
 import { adviseSelection } from '../engine/selection.js';
@@ -70,38 +70,39 @@ function finishMatch(result: 'win' | 'lose' | 'draw' | 'unknown') {
 
 // ---- 画面1枚の処理 ----
 
-function oppHpFromBar(png: string, r: ReadResult, oppName?: { box: ReadResult['species'][number]['box'] }) {
-  if (!oppName) return undefined;
-  try {
-    const bar = screen.bar(png, hpBarRegion(oppName.box, layout));
-    return bar.color === 'none' ? undefined : bar.fraction;
-  } catch {
-    return undefined;
-  }
+/** 自分のポケモンの最大 HP（HP の数字の読み間違いを直すのに使う） */
+function maxHpOf(species: string): number | undefined {
+  const m = team.members.find((x) => x.species === species || x.megaSpecies === species);
+  return m ? toCalcPokemon(m).maxHP() : undefined;
 }
+
+/** 行動の文を見たら true。次に「たたかう」の画面が出た時に、新しいターンとして助言する */
+let awaitingCommand = true;
 
 async function handleFrame(png: string) {
   const boxes = screen.ocr(png);
-  const r = readBoxes(boxes, layout, myMoves);
+  const r = readBoxes(boxes, layout, myMoves, maxHpOf);
   view.screenKind = r.kind;
 
   if (r.kind === 'result') {
     const t = r.resultText ?? '';
-    finishMatch(/かち|勝ち|WIN/i.test(t) ? 'win' : /まけ|負け|LOSE/i.test(t) ? 'lose' : /ひきわけ|引き分け/.test(t) ? 'draw' : 'unknown');
+    finishMatch(/勝った/.test(t) ? 'win' : /負けた/.test(t) ? 'lose' : /引き分け/.test(t) ? 'draw' : 'unknown');
     return;
   }
   if (r.kind === 'preview') {
+    // 前の試合の結果の画面を見逃しても、次の選出画面で区切る
+    if (tracker.phase === 'battle') finishMatch('unknown');
+    // 選出画面の間は1回だけ処理する（毎回やると、入力中の名前の欄が作り直されて消える）
+    if (tracker.phase === 'preview' && view.oppSlots) return;
     // 相手の6匹はアイコンだけなので、見た目で見分ける。知らないアイコンは助言の窓で本人が名前を入れる
     const sigs = slotSignatures(png, layout);
-    const key = sigs.map((x) => x.slice(0, 12).join(',')).join('|');
-    if (key === lastPreviewKey) return;
-    lastPreviewKey = key;
     pendingSigs = sigs;
     const guesses = identify(sigs);
     saveSlotImages(png, layout, `${CAPTURE_DIR}/slots`);
     view.oppSlots = guesses.map((g) => ({ ja: g.species ? enToJa('species', g.species) : '', known: !!g.species }));
     view.slotVersion = Date.now();
     tracker.onPreview([]);
+    awaitingCommand = true;
     if (guesses.every((g) => g.species)) runSelection(guesses.map((g) => g.species!));
     else {
       note('相手の6匹のうち知らないアイコンがある。助言の窓で名前を入れてください');
@@ -109,22 +110,20 @@ async function handleFrame(png: string) {
     }
     return;
   }
-  if (r.kind === 'move_select' || r.kind === 'battle') {
-    const { mine, opp } = splitSides(r, layout);
-    const myName = mine[0]?.en;
-    const oppName = opp[0];
-    // 自分の HP の数字は自分側（画面の下）にある
-    const myHp = r.hpNumbers.find((h) => h.box.y >= layout.oppSideMaxY);
-    tracker.onBattleFrame(myName, oppName?.en, myHp ? { cur: myHp.cur, max: myHp.max } : undefined, oppHpFromBar(png, r, oppName));
-    for (const m of r.moves) {
-      // 技選択の画面に出ている自分の技は除き、それ以外（相手の行動の文）を相手の技として数える
-      if (r.kind === 'battle' && !myMoves.includes(m.en)) tracker.onMoveSeen('opp', m.en);
-    }
+  if (r.kind === 'other') return;
+  if (tracker.phase !== 'battle') view.oppSlots = undefined; // 選出が終わったら入力欄を閉じる
+  tracker.onBattleFrame(r.myName, r.oppName, r.myHp, r.oppPct !== undefined ? r.oppPct / 100 : undefined);
+  for (const e of r.events) {
+    tracker.onMoveSeen(e.side, e.move);
+    note(`${e.side === 'opp' ? '相手の' : ''}${e.species ? enToJa('species', e.species) : '?'}の${enToJa('moves', e.move)}`);
+    awaitingCommand = true;
   }
-  if (r.kind === 'move_select') await adviseTurn();
+  if ((r.kind === 'command' || r.kind === 'move_select') && awaitingCommand) {
+    awaitingCommand = false;
+    await adviseTurn();
+  }
 }
 
-let lastPreviewKey = '';
 let pendingSigs: number[][] = [];
 
 /** 相手の6匹が分かったら選出の助言を出す */
@@ -164,9 +163,11 @@ async function adviseTurn() {
   tracker.onTurnStart();
   const t = Date.now();
   const r = search(state, { depth: view.light ? 1 : 2, oppActiveSets: tracker.oppActiveSets(), timeLimitMs: 6000 });
-  const advice: Advice[] = explain(state, r);
+  // 上位3つだけでなく全部の手を出す（確率 0% の手も、理由を見て本人が選べるように）
+  const advice: Advice[] = explain(state, r, r.candidates.length);
   const pred = predictOpponent(state, r);
   view.advice = advice;
+  note(`T${tracker.turn} 候補: ${advice.slice(0, 3).map((a) => `${a.label} ${Math.round(a.prob * 100)}%`).join(' / ')}`);
   view.oppPrediction = pred;
   view.board = {
     mine: `${enToJa('species', tracker.myActive!.species)} ${Math.round(tracker.myActive!.hpFrac * 100)}%`,
@@ -285,7 +286,7 @@ async function replay(dir: string) {
   for (const f of files) {
     view.status = `再生: ${f}`;
     await handleFrame(`${dir}/${f}`);
-    note(`${f}: ${view.screenKind}`);
+    if (process.env.PA_REPLAY_VERBOSE) note(`${f}: ${view.screenKind}`);
     await sleep(Number(process.env.PA_REPLAY_MS ?? 800));
   }
   finishMatch('unknown');

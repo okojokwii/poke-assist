@@ -1,0 +1,38 @@
+{
+ "id": "2026-10-22_011",
+ "started_at": "2026-10-22T13:08:50.023Z",
+ "format": "singles",
+ "team": "シーズン6 最終2位 波動一閃カバルカミミ対面構築（うめだみゆ）",
+ "oppTeam": [],
+ "myPick": [
+  "Hippowdon"
+ ],
+ "oppSeen": [
+  "Hippowdon",
+  "Charizard"
+ ],
+ "turns": [],
+ "damage": [
+  {
+   "turn": 0,
+   "dir": "dealt",
+   "attacker": "Hippowdon",
+   "defender": "Charizard",
+   "before": 94.5,
+   "after": 78.4,
+   "unit": "pct"
+  },
+  {
+   "turn": 0,
+   "dir": "dealt",
+   "attacker": "Hippowdon",
+   "defender": "Charizard",
+   "before": 79,
+   "after": 40.8,
+   "unit": "pct"
+  }
+ ],
+ "tokens": {},
+ "result": "lose",
+ "ended_at": "2026-10-22T13:09:31.525Z"
+}
