@@ -94,16 +94,15 @@ export class Tracker {
       }
     }
     if (opp) {
-      const base = opp.endsWith('-Mega') ? opp.slice(0, -5) : opp;
-      if (!this.oppMons.has(base)) {
-        const set = this.oppSets(opp.endsWith('-Mega') ? base : opp)[0]!.set;
-        this.oppMons.set(base, newMon(set));
-      }
+      const isMega = /-Mega(-[XYZ])?$/.test(opp);
+      const base = opp.replace(/-Mega(-[XYZ])?$/, '');
+      if (!this.oppMons.has(base)) this.oppMons.set(base, newMon(this.oppSets(base)[0]!.set));
       if (!this.match.oppSeen.includes(base)) this.match.oppSeen.push(base);
       const st = this.oppMons.get(base)!;
-      if (opp.endsWith('-Mega')) {
+      if (isMega && !st.megaEvolved) {
+        // メガシンカが見えたら、型の候補をそのメガの集計に絞り直す
+        st.set = { ...(this.oppSets(opp)[0]?.set ?? st.set), megaSpecies: opp };
         st.megaEvolved = true;
-        st.set = { ...st.set, megaSpecies: st.set.megaSpecies ?? opp };
         this.megaUsed[1] = true;
       }
       if (oppHpFrac !== undefined) {
@@ -171,9 +170,14 @@ export class Tracker {
   oppActiveSets(): WeightedSet[] | undefined {
     if (!this.oppActive) return undefined;
     const st = this.oppMons.get(this.oppActive.species);
-    return this.oppSets(this.oppActive.species).map((w) => ({
-      ...w,
-      set: { ...w.set, megaSpecies: st?.megaEvolved ? st.set.megaSpecies : w.set.megaSpecies },
-    }));
+    // メガ後ならそのメガの型だけ、メガ前ならメガする型・しない型を混ぜたまま
+    if (st?.megaEvolved && st.set.megaSpecies) return this.oppSets(st.set.megaSpecies);
+    // 相手がもうメガを使った（別のポケモンで）なら、この子はメガしない型だけ
+    const sets = this.oppSets(this.oppActive.species);
+    if (this.megaUsed[1]) {
+      const plain = sets.filter((w) => !w.set.megaSpecies);
+      if (plain.length) return plain;
+    }
+    return sets;
   }
 }

@@ -61,39 +61,54 @@ export interface WeightedSet {
 /**
  * 種ごとに「ありそうな型」を k 通り作る。
  * 配分・持ち物・特性はそれぞれ上位を、技は採用率の上位4つを組む（技は配分と独立に扱う簡略化）。
+ * 選出画面ではメガかどうか分からないので、元の種の名前で引くと、メガ前・メガ後（X/Y/Z を含む）の
+ * 集計を使用率の比で混ぜて返す。メガの名前（Salamence-Mega など）で引けばその形だけ。
  */
 export function likelySets(db: UsageDB | undefined, species: string, k = 3): WeightedSet[] {
-  const e = db?.chaos.data[species] ?? db?.chaos.data[gen.species.get(toID(species) as never)?.name ?? ''];
-  if (!e) return [fallbackSet(species)];
-  const spreads = topN(e.Spreads, k);
-  const items = topN(e.Items, k);
-  const ability = topN(e.Abilities, 1)[0]?.[0];
-  const moves = topN(e.Moves, 8)
-    .map(([id]) => nameOf.move(id))
-    .filter((m): m is string => !!m)
-    .slice(0, 4);
-  const mega = gen.species.get(toID(`${species}-Mega`) as never);
-  const out: WeightedSet[] = [];
-  for (let i = 0; i < Math.max(spreads.length, 1); i++) {
-    const sp = spreads[i] ? parseSpread(spreads[i]![0]) : undefined;
-    const item = nameOf.item(items[Math.min(i, items.length - 1)]?.[0] ?? '');
-    out.push({
-      weight: spreads[i]?.[1] ?? 1,
-      set: {
-        species,
-        nature: sp?.nature ?? 'Hardy',
-        sp: sp?.sp ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-        item,
-        ability: ability ? nameOf.ability(ability) : undefined,
-        moves,
-        // 種そのものが既にメガ（Salamence-Mega など）として集計されている場合はそのまま
-        megaSpecies: undefined,
-        ...(mega && item?.endsWith('ite') ? { megaSpecies: mega.name } : {}),
-      },
-    });
+  const data = db?.chaos.data ?? {};
+  const resolved = data[species] ? species : (gen.species.get(toID(species) as never)?.name ?? species);
+  const isMegaName = /-Mega(-[XYZ])?$/.test(resolved);
+  const base = resolved.replace(/-Mega(-[XYZ])?$/, '');
+  const forms = isMegaName
+    ? [resolved].filter((f) => data[f])
+    : Object.keys(data).filter((f) => f === base || /^.+-Mega(-[XYZ])?$/.test(f) && f.replace(/-Mega(-[XYZ])?$/, '') === base);
+  if (!forms.length) return [fallbackSet(isMegaName ? base : species)];
+  const totalUsage = forms.reduce((a, f) => a + data[f]!.usage, 0) || 1;
+  const baseAbility = gen.species.get(toID(base) as never)?.abilities?.[0];
+  const all: WeightedSet[] = [];
+  for (const form of forms) {
+    const e = data[form]!;
+    const share = e.usage / totalUsage;
+    const isMega = form !== base;
+    const spreads = topN(e.Spreads, k);
+    const items = topN(e.Items, k);
+    const ability = topN(e.Abilities, 1)[0]?.[0];
+    const moves = topN(e.Moves, 8)
+      .map(([id]) => nameOf.move(id))
+      .filter((m): m is string => !!m)
+      .slice(0, 4);
+    for (let i = 0; i < Math.max(spreads.length, 1); i++) {
+      const sp = spreads[i] ? parseSpread(spreads[i]![0]) : undefined;
+      const item = nameOf.item(items[Math.min(i, items.length - 1)]?.[0] ?? '');
+      const ab = ability ? nameOf.ability(ability) : undefined;
+      all.push({
+        weight: share * (spreads[i]?.[1] ?? 1),
+        set: {
+          species: base,
+          nature: sp?.nature ?? 'Hardy',
+          sp: sp?.sp ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+          item,
+          // メガの集計の特性はメガ後のもの。メガ前は図鑑の最初の特性で仮置きする
+          ability: isMega ? baseAbility : ab,
+          moves,
+          ...(isMega ? { megaSpecies: form, megaAbility: ab } : {}),
+        },
+      });
+    }
   }
-  const sum = out.reduce((a, b) => a + b.weight, 0) || 1;
-  return out.map((w) => ({ ...w, weight: w.weight / sum }));
+  const top = all.sort((a, b) => b.weight - a.weight).slice(0, k);
+  const sum = top.reduce((a, b) => a + b.weight, 0) || 1;
+  return top.map((w) => ({ ...w, weight: w.weight / sum }));
 }
 
 /** 使用率に無い種は、無振り・技なしの型で仮置きする（技は画面で見えたものを足す） */
