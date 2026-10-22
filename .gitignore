@@ -1,0 +1,8 @@
+.DS_Store
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+# スクショ・試合の生画像は容量が大きいので入れない
+captures/
+.env
