@@ -40,9 +40,9 @@ function topN(rec: Record<string, number>, n: number): [string, number][] {
 }
 
 const nameOf = {
-  item: (id: string) => gen.items.get(id as never)?.name,
-  ability: (id: string) => gen.abilities.get(id as never)?.name,
-  move: (id: string) => gen.moves.get(id as never)?.name,
+  item: (id: string): string | undefined => gen.items.get(id as never)?.name,
+  ability: (id: string): string | undefined => gen.abilities.get(id as never)?.name,
+  move: (id: string): string | undefined => gen.moves.get(id as never)?.name,
 };
 
 function parseSpread(s: string): { nature: string; sp: StatPoints } | undefined {

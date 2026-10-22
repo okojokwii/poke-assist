@@ -62,3 +62,16 @@ export function jaToEn(kind: Kind, ja: string, maxDistance = 2): string | undefi
   }
   return best?.en;
 }
+
+const reverse = new Map<Kind, Map<string, string>>();
+/** 英名 → 日本語名（表示用）。見つからなければ英名のまま */
+export function enToJa(kind: Kind, en: string): string {
+  let m = reverse.get(kind);
+  if (!m) {
+    m = new Map();
+    // 表の先頭（かな表記）を優先する
+    for (const [ja, e] of Object.entries(load()[kind])) if (!m.has(e)) m.set(e, ja);
+    reverse.set(kind, m);
+  }
+  return m.get(en) ?? en;
+}
