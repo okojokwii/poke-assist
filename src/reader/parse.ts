@@ -34,7 +34,7 @@ export function loadLayout(path = 'config/layout.json'): Layout {
   return JSON.parse(readFileSync(path, 'utf8')) as Layout;
 }
 
-export type ScreenKind = 'preview' | 'command' | 'move_select' | 'result' | 'battle' | 'other';
+export type ScreenKind = 'preview' | 'command' | 'move_select' | 'status' | 'result' | 'battle' | 'other';
 
 export interface NamedBox {
   en: string;
@@ -62,6 +62,8 @@ export interface ReadResult {
   /** 「○○の ××！」の文から読めた行動 */
   events: MoveEvent[];
   resultText?: string;
+  /** 「様子を見る」の画面: どちらの誰の、能力変化の段階 */
+  status?: { side: 'mine' | 'opp'; species?: string; boosts: { atk: number; def: number; spa: number; spd: number; spe: number } };
 }
 
 const inside = (b: OcrBox, r: Region) => b.x >= r.x0 && b.x < r.x1 && b.y >= r.y0 && b.y < r.y1;
@@ -105,6 +107,14 @@ export function readBoxes(
   if (result) {
     r.kind = 'result';
     r.resultText = result.text;
+    return r;
+  }
+  if (has(['めいちゅう']) && has(['かいひ'])) {
+    const st = readStatusScreen(boxes);
+    if (st) {
+      r.kind = 'status';
+      r.status = st;
+    }
     return r;
   }
   if (has(layout.previewKeywords)) {
@@ -155,4 +165,32 @@ export function readBoxes(
   else if (r.moves.length >= layout.moveSelectMinMoves) r.kind = 'move_select';
   else if (r.oppName || r.myName || r.events.length) r.kind = 'battle';
   return r;
+}
+
+/** 倍率（×1.5, ×0.67 など）から段階（+1, -1 など）へ */
+export function multiplierToStage(m: number): number {
+  if (m >= 1) return Math.max(0, Math.min(6, Math.round((m - 1) * 2)));
+  return -Math.max(0, Math.min(6, Math.round((1 / m - 1) * 2)));
+}
+
+/**
+ * 「様子を見る」の画面。左の列に こうげき〜すばやさ の倍率が「×2.0」の形で並び、その下に めいちゅう・かいひ。
+ * HP が「1/149」の形なら自分、「%」なら相手（相手側の表示は 2026-10-22 時点で未確認）。
+ * 倍率が5つ読めなければ使わない（読み違いで盤面を壊さないため）。
+ */
+function readStatusScreen(boxes: OcrBox[]): ReadResult['status'] {
+  const accY = boxes.find((b) => b.text.includes('めいちゅう'))?.y ?? 1;
+  const mults = boxes
+    .filter((b) => b.x < 0.5 && b.y < accY - 0.01 && !b.text.includes('倍'))
+    .map((b) => ({ b, m: /(\d)\s*[.．]\s*(\d{1,2})\s*$/.exec(b.text) }))
+    .filter((x): x is { b: OcrBox; m: RegExpExecArray } => !!x.m && /[xX✕×]/.test(x.b.text))
+    .sort((a, c) => a.b.y - c.b.y)
+    .map((x) => Number(`${x.m[1]}.${x.m[2]}`));
+  if (mults.length < 5) return undefined;
+  const [atk, def, spa, spd, spe] = mults.slice(-5).map(multiplierToStage) as [number, number, number, number, number];
+  const hpBox = boxes.find((b) => /^\d{1,3}\s*[/／]\s*\d{2,3}$/.test(b.text.trim()) || /^\d{1,3}\s*%$/.test(b.text.trim()));
+  const side = hpBox && /%/.test(hpBox.text) ? 'opp' : 'mine';
+  // 名前は左上の枠（他の場所の文字を名前と取り違えないよう、位置で絞る）
+  const species = boxes.filter((b) => b.y < 0.33 && b.x < 0.5).map((b) => jaToEn('species', cleanName(b.text))).find((x): x is string => !!x);
+  return { side, species, boosts: { atk, def, spa, spd, spe } };
 }

@@ -2,7 +2,8 @@
 // 画面の読み取りは1枚ごとに抜けや誤りがあるので、見えたものだけで上書きし、見えなかったものは前の値を残す。
 import type { Team } from '../dex/sets.js';
 import { likelySets, type UsageDB, type WeightedSet } from '../usage/usage.js';
-import { newMon, type BattleState, type MonState } from '../engine/state.js';
+import { emptyBoosts, newMon, type BattleState, type Boosts, type MonState } from '../engine/state.js';
+import { moveInfo } from '../engine/moves.js';
 import { newMatch, type MatchLog } from '../match/log.js';
 
 export interface SideView {
@@ -23,6 +24,8 @@ export class Tracker {
   private megaUsed: [boolean, boolean] = [false, false];
   private oppSetCache = new Map<string, WeightedSet[]>();
   private lastOppMove?: string;
+  /** ステルスロックが撒かれているか。[自分の場, 相手の場] */
+  private rocks: [boolean, boolean] = [false, false];
 
   constructor(
     readonly team: Team,
@@ -40,6 +43,7 @@ export class Tracker {
     this.oppMons.clear();
     this.megaUsed = [false, false];
     this.lastOppMove = undefined;
+    this.rocks = [false, false];
   }
 
   oppSets(species: string): WeightedSet[] {
@@ -72,6 +76,8 @@ export class Tracker {
       const member = this.myMember(mine);
       if (member) {
         const key = member.species;
+        // 交代したら、引っ込んだ側の能力変化は元に戻る
+        if (this.myActive && this.myActive.species !== key) this.clearOnSwitch(this.myMons.get(this.myActive.species));
         if (!this.myMons.has(key)) this.myMons.set(key, newMon(member));
         if (!this.match.myPick.includes(key)) this.match.myPick.push(key);
         const st = this.myMons.get(key)!;
@@ -96,6 +102,7 @@ export class Tracker {
     if (opp) {
       const isMega = /-Mega(-[XYZ])?$/.test(opp);
       const base = opp.replace(/-Mega(-[XYZ])?$/, '');
+      if (this.oppActive && this.oppActive.species !== base) this.clearOnSwitch(this.oppMons.get(this.oppActive.species));
       if (!this.oppMons.has(base)) this.oppMons.set(base, newMon(this.oppSets(base)[0]!.set));
       if (!this.match.oppSeen.includes(base)) this.match.oppSeen.push(base);
       const st = this.oppMons.get(base)!;
@@ -127,13 +134,46 @@ export class Tracker {
     }
   }
 
-  /** 画面の文から読めた技（相手の技は型の推定に足す） */
+  private clearOnSwitch(m: MonState | undefined) {
+    if (!m) return;
+    m.boosts = emptyBoosts();
+    m.drowsy = 0;
+    m.choiceLock = undefined;
+  }
+
+  private activeState(side: 'mine' | 'opp'): MonState | undefined {
+    const v = side === 'mine' ? this.myActive : this.oppActive;
+    return v ? (side === 'mine' ? this.myMons : this.oppMons).get(v.species) : undefined;
+  }
+
+  /**
+   * 画面の文から読めた技。能力変化（わるだくみ・りゅうせいぐん等）とステルスロックを盤面に反映し、
+   * 相手の技は型の推定に足す。外れた・失敗した場合も反映してしまうので、「様子を見る」の画面で上書きして直す。
+   */
   onMoveSeen(side: 'mine' | 'opp', move: string) {
     if (side === 'opp') this.lastOppMove = move;
-    if (side === 'opp' && this.oppActive) {
-      const st = this.oppMons.get(this.oppActive.species);
-      if (st && !st.revealedMoves.includes(move)) st.revealedMoves.push(move);
-    }
+    const user = this.activeState(side);
+    const target = this.activeState(side === 'mine' ? 'opp' : 'mine');
+    if (side === 'opp' && user && !user.revealedMoves.includes(move)) user.revealedMoves.push(move);
+    const info = moveInfo(move);
+    if (info.selfBoosts && user) addBoosts(user, info.selfBoosts);
+    if (info.boosts && !info.targetsSelf && target) addBoosts(target, info.boosts);
+    if (info.sideCondition === 'stealthrock') this.rocks[side === 'mine' ? 1 : 0] = true;
+  }
+
+  /** 「様子を見る」の画面で読めた能力変化で上書きする（こちらが正しい） */
+  onStatusScreen(side: 'mine' | 'opp', boosts: Boosts) {
+    const m = this.activeState(side);
+    if (m) m.boosts = { ...boosts };
+  }
+
+  /** 今の場の能力変化（助言の窓に出す用） */
+  boostsOf(side: 'mine' | 'opp'): Boosts | undefined {
+    return this.activeState(side)?.boosts;
+  }
+
+  get oppHasRocks() {
+    return this.rocks[1];
   }
 
   onTurnStart() {
@@ -149,7 +189,7 @@ export class Tracker {
     const mySide = {
       mons: myList,
       active: myList.findIndex((m) => m.set.species === this.myActive!.species),
-      stealthRock: false,
+      stealthRock: this.rocks[0],
       megaUsed: this.megaUsed[0],
     };
     // 相手の控えのうちまだ見ていない分は、選出画面の6匹のうち使用率の高い順に仮に足す（3匹になるまで）
@@ -160,7 +200,7 @@ export class Tracker {
     const oppSide = {
       mons: [...oppList, ...filler],
       active: oppList.findIndex((m) => (m.set.species === this.oppActive!.species) || m.set.species.startsWith(this.oppActive!.species)),
-      stealthRock: false,
+      stealthRock: this.rocks[1],
       megaUsed: this.megaUsed[1],
     };
     if (mySide.active < 0 || oppSide.active < 0) return undefined;
@@ -179,5 +219,14 @@ export class Tracker {
       if (plain.length) return plain;
     }
     return sets;
+  }
+}
+
+function addBoosts(m: MonState, b: Record<string, number>) {
+  for (const [k, v] of Object.entries(b)) {
+    if (k in m.boosts) {
+      const key = k as keyof Boosts;
+      m.boosts[key] = Math.max(-6, Math.min(6, m.boosts[key] + v));
+    }
   }
 }

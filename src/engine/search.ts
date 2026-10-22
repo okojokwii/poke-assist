@@ -13,6 +13,11 @@ export interface SearchOptions {
   oppActiveSets?: WeightedSet[];
   /** 打ち切りの時間（ミリ秒）。超えたら浅い読みの結果を返す */
   timeLimitMs?: number;
+  /**
+   * 本人の好み（「初手はステロを撒きたい」等）。この手の点数に足してから均衡を解く。
+   * 他の手が足した分より明らかに良い時だけ、他の手が選ばれる。
+   */
+  rowBonus?: (a: Action) => number;
 }
 
 export interface Candidate {
@@ -99,6 +104,10 @@ export function search(state: BattleState, opts: SearchOptions): SearchResult {
   for (let d = 1; d <= opts.depth; d++) {
     const { mine, theirs, matrix } = expectedMatrix(state, d, opts, d === 1 ? Infinity : deadline);
     if (d > 1 && Date.now() > deadline) break;
+    if (opts.rowBonus) mine.forEach((a, i) => {
+      const b = opts.rowBonus!(a);
+      if (b) matrix[i] = matrix[i]!.map((v) => v + b);
+    });
     const nash = solveNash(matrix);
     const candidates: Candidate[] = mine.map((action, i) => {
       const row = matrix[i]!;

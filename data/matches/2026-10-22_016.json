@@ -1,0 +1,202 @@
+{
+ "id": "2026-10-22_016",
+ "started_at": "2026-10-22T13:19:22.560Z",
+ "format": "singles",
+ "team": "シーズン6 最終2位 波動一閃カバルカミミ対面構築（うめだみゆ）",
+ "oppTeam": [],
+ "myPick": [
+  "Lucario"
+ ],
+ "oppSeen": [
+  "Armarouge",
+  "Steelix",
+  "Hydreigon"
+ ],
+ "turns": [
+  {
+   "turn": 1,
+   "at": "2026-10-22T13:19:30.335Z",
+   "myActive": "Lucario",
+   "myHp": {
+    "cur": 1,
+    "max": 149
+   },
+   "oppActive": "Armarouge",
+   "oppHpPct": 81,
+   "advice": [
+    {
+     "label": "メガ＋あくのはどう",
+     "prob": 0.9999998333888703,
+     "reason": "89%〜105%（残り81%）確1 / 上から / 一番嫌な返し: アーマーキャノン"
+    },
+    {
+     "label": "メガ＋ラスターカノン",
+     "prob": 5.553704320781961e-8,
+     "reason": "33%〜39%（残り81%） / 上から / 一番嫌な返し: アーマーキャノン"
+    },
+    {
+     "label": "メガ＋わるだくみ",
+     "prob": 5.553704320781961e-8,
+     "reason": "積み / 上から / 一番嫌な返し: アーマーキャノン"
+    },
+    {
+     "label": "メガ＋しんくうは",
+     "prob": 5.553704320781961e-8,
+     "reason": "17%〜20%（残り81%） / 先制技 / 一番嫌な返し: アーマーキャノン"
+    }
+   ],
+   "oppPrediction": [
+    {
+     "label": "アーマーキャノン",
+     "prob": 0.4999999444629568
+    },
+    {
+     "label": "ワイドフォース",
+     "prob": 0.4999999444629568
+    },
+    {
+     "label": "みちづれ",
+     "prob": 5.553704320781961e-8
+    }
+   ],
+   "events": []
+  },
+  {
+   "turn": 2,
+   "at": "2026-10-22T13:20:05.164Z",
+   "myActive": "Lucario",
+   "myHp": {
+    "cur": 1,
+    "max": 149
+   },
+   "oppActive": "Steelix",
+   "oppHpPct": 97,
+   "advice": [
+    {
+     "label": "メガ＋しんくうは",
+     "prob": 0.49999994446347457,
+     "reason": "51%〜60%（残り97%） / 先制技 / 一番嫌な返し: メガ＋じしん"
+    },
+    {
+     "label": "メガ＋わるだくみ",
+     "prob": 0.49999994446243906,
+     "reason": "積み / 上から / 一番嫌な返し: メガ＋じしん"
+    },
+    {
+     "label": "メガ＋あくのはどう",
+     "prob": 5.553704320781961e-8,
+     "reason": "34%〜40%（残り97%） / 上から / 一番嫌な返し: メガ＋じしん"
+    },
+    {
+     "label": "メガ＋ラスターカノン",
+     "prob": 5.553704320781961e-8,
+     "reason": "25%〜30%（残り97%） / 上から / 一番嫌な返し: メガ＋じしん"
+    }
+   ],
+   "oppPrediction": [
+    {
+     "label": "メガ＋じしん",
+     "prob": 0.24999998889259134
+    },
+    {
+     "label": "メガ＋ボディプレス",
+     "prob": 0.24999998889259134
+    },
+    {
+     "label": "メガ＋ヘビーボンバー",
+     "prob": 0.24999998889259134
+    }
+   ],
+   "events": []
+  },
+  {
+   "turn": 3,
+   "at": "2026-10-22T13:21:27.023Z",
+   "myActive": "Lucario",
+   "myHp": {
+    "cur": 1,
+    "max": 149
+   },
+   "oppActive": "Hydreigon",
+   "oppHpPct": 87,
+   "advice": [
+    {
+     "label": "メガ＋ラスターカノン",
+     "prob": 0.25,
+     "reason": "57%〜68%（残り87%） / 下から / 一番嫌な返し: あくのはどう"
+    },
+    {
+     "label": "メガ＋しんくうは",
+     "prob": 0.25,
+     "reason": "58%〜69%（残り87%） / 先制技 / 一番嫌な返し: あくのはどう"
+    },
+    {
+     "label": "メガ＋あくのはどう",
+     "prob": 0.25,
+     "reason": "19%〜22%（残り87%） / 下から / 一番嫌な返し: あくのはどう"
+    },
+    {
+     "label": "メガ＋わるだくみ",
+     "prob": 0.25,
+     "reason": "積み / 下から / 一番嫌な返し: あくのはどう"
+    }
+   ],
+   "oppPrediction": [
+    {
+     "label": "あくのはどう",
+     "prob": 0.25
+    },
+    {
+     "label": "りゅうせいぐん",
+     "prob": 0.25
+    },
+    {
+     "label": "とんぼがえり",
+     "prob": 0.25
+    }
+   ],
+   "events": []
+  }
+ ],
+ "damage": [
+  {
+   "turn": 1,
+   "dir": "dealt",
+   "attacker": "Lucario",
+   "defender": "Armarouge",
+   "before": 81,
+   "after": 0,
+   "unit": "pct"
+  },
+  {
+   "turn": 2,
+   "dir": "dealt",
+   "attacker": "Lucario",
+   "defender": "Steelix",
+   "before": 97,
+   "after": 0,
+   "unit": "pct"
+  },
+  {
+   "turn": 2,
+   "dir": "dealt",
+   "attacker": "Lucario",
+   "defender": "Hydreigon",
+   "before": 91,
+   "after": 87,
+   "unit": "pct"
+  },
+  {
+   "turn": 3,
+   "dir": "dealt",
+   "attacker": "Lucario",
+   "defender": "Hydreigon",
+   "before": 87,
+   "after": 0,
+   "unit": "pct"
+  }
+ ],
+ "tokens": {},
+ "result": "unknown",
+ "ended_at": "2026-10-22T13:23:32.000Z"
+}

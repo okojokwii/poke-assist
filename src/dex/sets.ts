@@ -22,6 +22,8 @@ export interface Team {
   members: (MonSet & { role?: string })[];
   selection: { vs: string; pick: string[] | string; plan: string }[];
   threats: { species: string; note: string }[];
+  /** 本人の好み。条件を満たす時、その技の点数に bonus を足す（search の rowBonus） */
+  preferences?: { move: string; bonus: number; when?: 'oppNoRocks'; note?: string }[];
 }
 
 export function loadTeam(path: string): Team {

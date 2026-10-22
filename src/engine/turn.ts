@@ -74,11 +74,11 @@ function priorityOf(m: MonState, action: Action): number {
 
 // ---- 場に出る・交代 ----
 
-function typeEffectiveness(moveType: string, species: string): number {
+export function typeEffectiveness(moveType: string, species: string): number {
   return speciesTypes(species).reduce((x, t) => x * gen.types.get(t.toLowerCase() as never)!.effectiveness[moveType as never]!, 1);
 }
 
-function curSpecies(m: MonState): string {
+export function curSpecies(m: MonState): string {
   if (m.form) return m.form;
   return m.megaEvolved && m.set.megaSpecies ? m.set.megaSpecies : m.set.species;
 }

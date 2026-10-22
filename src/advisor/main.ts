@@ -18,6 +18,7 @@ import { identify, learn, saveSlotImages, slotSignatures } from '../reader/icons
 import { saveMatch } from '../match/log.js';
 import { ClaudeSession } from '../claude/session.js';
 import { Tracker } from './tracker.js';
+import type { Action, Boosts } from '../engine/state.js';
 import { startServer, type View } from './server.js';
 
 const TEAM_PATH = process.env.PA_TEAM ?? 'data/team/s6_umeda.json';
@@ -111,6 +112,16 @@ async function handleFrame(png: string) {
     return;
   }
   if (r.kind === 'other') return;
+  if (r.kind === 'status' && r.status) {
+    const active = r.status.side === 'mine' ? tracker.myActive?.species : tracker.oppActive?.species;
+    // 名前が場のポケモンと合う時だけ上書きする（読み違いで別のポケモンに入れないため）
+    if (!r.status.species || !active || r.status.species.replace(/-Mega(-[XYZ])?$/, '') === active) {
+      tracker.onStatusScreen(r.status.side, r.status.boosts);
+      note(`様子を見る: ${r.status.side === 'mine' ? '自分' : '相手'}の能力変化 ${fmtBoosts(r.status.boosts)}`);
+      awaitingCommand = true; // 直した盤面で読み直す
+    }
+    return;
+  }
   if (tracker.phase !== 'battle') view.oppSlots = undefined; // 選出が終わったら入力欄を閉じる
   tracker.onBattleFrame(r.myName, r.oppName, r.myHp, r.oppPct !== undefined ? r.oppPct / 100 : undefined);
   for (const e of r.events) {
@@ -125,6 +136,15 @@ async function handleFrame(png: string) {
 }
 
 let pendingSigs: number[][] = [];
+
+const STAT_JA = { atk: 'A', def: 'B', spa: 'C', spd: 'D', spe: 'S' } as const;
+function fmtBoosts(b: Boosts | undefined): string {
+  if (!b) return '';
+  return Object.entries(b)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `${STAT_JA[k as keyof typeof STAT_JA]}${v > 0 ? '+' : ''}${v}`)
+    .join(' ');
+}
 
 /** 相手の6匹が分かったら選出の助言を出す */
 function runSelection(names: string[]) {
@@ -162,7 +182,12 @@ async function adviseTurn() {
   }
   tracker.onTurnStart();
   const t = Date.now();
-  const r = search(state, { depth: view.light ? 1 : 2, oppActiveSets: tracker.oppActiveSets(), timeLimitMs: 6000 });
+  const prefs = team.preferences ?? [];
+  const rowBonus = (a: Action) =>
+    a.kind === 'move'
+      ? prefs.filter((p) => p.move === a.move && (p.when !== 'oppNoRocks' || !tracker.oppHasRocks)).reduce((x, p) => x + p.bonus, 0)
+      : 0;
+  const r = search(state, { depth: view.light ? 1 : 2, oppActiveSets: tracker.oppActiveSets(), timeLimitMs: 6000, rowBonus });
   // 上位3つだけでなく全部の手を出す（確率 0% の手も、理由を見て本人が選べるように）
   const advice: Advice[] = explain(state, r, r.candidates.length);
   const pred = predictOpponent(state, r);
@@ -170,8 +195,8 @@ async function adviseTurn() {
   note(`T${tracker.turn} 候補: ${advice.slice(0, 3).map((a) => `${a.label} ${Math.round(a.prob * 100)}%`).join(' / ')}`);
   view.oppPrediction = pred;
   view.board = {
-    mine: `${enToJa('species', tracker.myActive!.species)} ${Math.round(tracker.myActive!.hpFrac * 100)}%`,
-    opp: `${enToJa('species', tracker.oppActive!.species)} ${Math.round(tracker.oppActive!.hpFrac * 100)}%`,
+    mine: `${enToJa('species', tracker.myActive!.species)} ${Math.round(tracker.myActive!.hpFrac * 100)}% ${fmtBoosts(tracker.boostsOf('mine'))}`,
+    opp: `${enToJa('species', tracker.oppActive!.species)} ${Math.round(tracker.oppActive!.hpFrac * 100)}% ${fmtBoosts(tracker.boostsOf('opp'))}`,
     turn: tracker.turn,
     ms: Date.now() - t,
     depth: r.depthReached,
