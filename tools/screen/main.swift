@@ -35,7 +35,8 @@ func findWindow() -> [String: Any]? {
     }
     for w in list {
         let owner = w[kCGWindowOwnerName as String] as? String ?? ""
-        guard mirroringOwners.contains(owner), (w[kCGWindowLayer as String] as? Int) == 0 else { continue }
+        let isMirroring = mirroringOwners.contains(owner) || owner.contains("iPhone") || owner.contains("ミラーリング")
+        guard isMirroring, (w[kCGWindowLayer as String] as? Int) == 0 else { continue }
         let b = w[kCGWindowBounds as String] as? [String: CGFloat] ?? [:]
         guard let width = b["Width"], width > 100 else { continue }
         return ["id": w[kCGWindowNumber as String] as? Int ?? 0, "x": b["X"] ?? 0, "y": b["Y"] ?? 0, "w": width, "h": b["Height"] ?? 0]

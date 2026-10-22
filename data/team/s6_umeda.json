@@ -9,9 +9,27 @@
       "item": "Leftovers",
       "ability": "Sand Stream",
       "nature": "Impish",
-      "sp": { "hp": 32, "atk": 0, "def": 17, "spa": 0, "spd": 17, "spe": 0 },
-      "moves": ["Earthquake", "Yawn", "Stealth Rock", "Slack Off"],
-      "statsInArticle": { "hp": 215, "atk": 132, "def": 170, "spd": 107, "spe": 67 },
+      "sp": {
+        "hp": 32,
+        "atk": 0,
+        "def": 17,
+        "spa": 0,
+        "spd": 17,
+        "spe": 0
+      },
+      "moves": [
+        "Earthquake",
+        "Yawn",
+        "Stealth Rock",
+        "Slack Off"
+      ],
+      "statsInArticle": {
+        "hp": 215,
+        "atk": 132,
+        "def": 170,
+        "spd": 107,
+        "spe": 67
+      },
       "role": "起点作成。ステルスロック・あくびで起点を作り、なまけるで体力管理しながら後投げ。臆病 C+2 メガルカリオのラスターカノン確定耐え。"
     },
     {
@@ -21,10 +39,34 @@
       "ability": "Inner Focus",
       "megaAbility": "Aura Guard",
       "nature": "Modest",
-      "sp": { "hp": 4, "atk": 0, "def": 0, "spa": 32, "spd": 0, "spe": 30 },
-      "moves": ["Flash Cannon", "Vacuum Wave", "Dark Pulse", "Nasty Plot"],
-      "statsInArticle": { "hp": 149, "def": 90, "spa": 183, "spd": 90, "spe": 140 },
-      "megaStatsInArticle": { "hp": 149, "def": 90, "spa": 237, "spd": 90, "spe": 201 },
+      "sp": {
+        "hp": 4,
+        "atk": 0,
+        "def": 0,
+        "spa": 32,
+        "spd": 0,
+        "spe": 30
+      },
+      "moves": [
+        "Flash Cannon",
+        "Vacuum Wave",
+        "Dark Pulse",
+        "Nasty Plot"
+      ],
+      "statsInArticle": {
+        "hp": 149,
+        "def": 90,
+        "spa": 183,
+        "spd": 90,
+        "spe": 140
+      },
+      "megaStatsInArticle": {
+        "hp": 149,
+        "def": 90,
+        "spa": 237,
+        "spd": 90,
+        "spe": 201
+      },
       "role": "エース。カバルドンの起点から悪巧みで全抜き。S は最速130族+1。悪の波動はギルガルド・サーフゴー用、真空波はスカーフエースバーン用。"
     },
     {
@@ -34,10 +76,36 @@
       "ability": "Multiscale",
       "megaAbility": "Multiscale",
       "nature": "Modest",
-      "sp": { "hp": 9, "atk": 0, "def": 0, "spa": 25, "spd": 0, "spe": 32 },
-      "moves": ["Draco Meteor", "Flamethrower", "Thunderbolt", "Extreme Speed"],
-      "statsInArticle": { "hp": 175, "atk": 138, "def": 115, "spa": 159, "spd": 120, "spe": 132 },
-      "megaStatsInArticle": { "hp": 175, "atk": 129, "def": 135, "spa": 209, "spd": 145, "spe": 152 },
+      "sp": {
+        "hp": 9,
+        "atk": 0,
+        "def": 0,
+        "spa": 25,
+        "spd": 0,
+        "spe": 32
+      },
+      "moves": [
+        "Draco Meteor",
+        "Flamethrower",
+        "Thunderbolt",
+        "Extreme Speed"
+      ],
+      "statsInArticle": {
+        "hp": 175,
+        "atk": 138,
+        "def": 115,
+        "spa": 159,
+        "spd": 120,
+        "spe": 132
+      },
+      "megaStatsInArticle": {
+        "hp": 175,
+        "atk": 129,
+        "def": 135,
+        "spa": 209,
+        "spd": 145,
+        "spe": 152
+      },
       "role": "対面性能の王（裏メガ）。初手でも裏のストッパーでも。神速でミリ残しを削る。H はステロ＋A特化+2不意打ちの乱数 6.2%。"
     },
     {
@@ -45,9 +113,27 @@
       "item": "Life Orb",
       "ability": "Disguise",
       "nature": "Adamant",
-      "sp": { "hp": 15, "atk": 30, "def": 6, "spa": 0, "spd": 0, "spe": 15 },
-      "moves": ["Play Rough", "Shadow Sneak", "Wood Hammer", "Swords Dance"],
-      "statsInArticle": { "hp": 145, "atk": 154, "def": 106, "spd": 125, "spe": 131 },
+      "sp": {
+        "hp": 15,
+        "atk": 30,
+        "def": 6,
+        "spa": 0,
+        "spd": 0,
+        "spe": 15
+      },
+      "moves": [
+        "Play Rough",
+        "Shadow Sneak",
+        "Wood Hammer",
+        "Swords Dance"
+      ],
+      "statsInArticle": {
+        "hp": 145,
+        "atk": 154,
+        "def": 106,
+        "spd": 125,
+        "spe": 131
+      },
       "role": "フェアリー枠。初手に置いてアシレーヌをウッドハンマーで削ることが多い。HB は陽気の地震＋化けの皮ダメージ確定耐え。"
     },
     {
@@ -56,10 +142,34 @@
       "item": "Focus Sash",
       "ability": "Stance Change",
       "nature": "Adamant",
-      "sp": { "hp": 2, "atk": 32, "def": 0, "spa": 0, "spd": 0, "spe": 32 },
-      "moves": ["Poltergeist", "Close Combat", "Shadow Sneak", "Swords Dance"],
-      "statsInArticle": { "hp": 137, "atk": 112, "def": 160, "spd": 160, "spe": 112 },
-      "bladeStatsInArticle": { "hp": 137, "atk": 211, "def": 70, "spd": 70, "spe": 112 },
+      "sp": {
+        "hp": 2,
+        "atk": 32,
+        "def": 0,
+        "spa": 0,
+        "spd": 0,
+        "spe": 32
+      },
+      "moves": [
+        "Poltergeist",
+        "Close Combat",
+        "Shadow Sneak",
+        "Swords Dance"
+      ],
+      "statsInArticle": {
+        "hp": 137,
+        "atk": 112,
+        "def": 160,
+        "spd": 160,
+        "spe": 112
+      },
+      "bladeStatsInArticle": {
+        "hp": 137,
+        "atk": 211,
+        "def": 70,
+        "spd": 70,
+        "spe": 112
+      },
       "role": "ストッパー兼崩し。キングシールドなし・耐久なしなので崩しで出す時は起点を作ってから。"
     },
     {
@@ -67,22 +177,76 @@
       "item": "Choice Scarf",
       "ability": "Adaptability",
       "nature": "Jolly",
-      "sp": { "hp": 2, "atk": 32, "def": 0, "spa": 0, "spd": 0, "spe": 32 },
-      "moves": ["Wave Crash", "Last Respects", "Aqua Jet", "Flip Turn"],
-      "statsInArticle": { "hp": 197, "atk": 164, "def": 85, "spd": 95, "spe": 143 },
+      "sp": {
+        "hp": 2,
+        "atk": 32,
+        "def": 0,
+        "spa": 0,
+        "spd": 0,
+        "spe": 32
+      },
+      "moves": [
+        "Wave Crash",
+        "Last Respects",
+        "Aqua Jet",
+        "Flip Turn"
+      ],
+      "statsInArticle": {
+        "hp": 197,
+        "atk": 164,
+        "def": 85,
+        "spd": 95,
+        "spe": 143
+      },
       "role": "スカーフで構築の S ラインを補う。相手のカバルドンにウェーブタックル、お墓参りで掃除。"
     }
   ],
   "selection": [
-    { "vs": "基本", "pick": ["Hippowdon", "Lucario", "Mimikyu"], "plan": "カバルドンで起点を作ってルカリオで全抜き。またはミミッキュで初手を荒らしてカバルドン・ルカリオで〆る。" },
-    { "vs": "対面構築", "pick": "未確認（記事では画像のみ）", "plan": "初手を処理できれば怠けるが通る。カイリューを上手く使う。" },
-    { "vs": "アーマーガア入り", "pick": "未確認（記事では画像のみ）", "plan": "ルカリオの悪巧みで勝てるが、相手のスカーフに注意。" },
-    { "vs": "アシレーヌ・カバルドン入り", "pick": "未確認（記事では画像のみ）", "plan": "初手はアシレーヌかカバルドンが多いので初手ミミッキュ。相手にカバルドン → イダイトウ、アシレーヌ → ミミッキュ、両方 → ミミッキュが多い。" },
-    { "vs": "ゴースト一貫", "pick": "未確認（記事では画像のみ）", "plan": "初手のアシレーヌをポルターガイストで無理やり削る。" }
+    {
+      "vs": "基本",
+      "pick": [
+        "Hippowdon",
+        "Lucario",
+        "Mimikyu"
+      ],
+      "plan": "カバルドンで起点を作ってルカリオで全抜き。またはミミッキュで初手を荒らしてカバルドン・ルカリオで〆る。"
+    },
+    {
+      "vs": "対面構築",
+      "pick": "未確認（記事では画像のみ）",
+      "plan": "初手を処理できれば怠けるが通る。カイリューを上手く使う。"
+    },
+    {
+      "vs": "ゲンガー・ブラッキー・アーマーガア入り",
+      "pick": [
+        "Lucario",
+        "Hippowdon"
+      ],
+      "plan": "ルカリオ・カバルドン＋1。ルカリオの悪巧みで勝てるが相手も分かっているので、スカーフガブリアスに注意。スカーフがイエッサンのパターンはかなりきつい。（記事の画像を本人が提供・2026-10-22。ゲンガーがメガかは画像から判別できない）"
+    },
+    {
+      "vs": "アシレーヌ・カバルドン入り",
+      "pick": "未確認（記事では画像のみ）",
+      "plan": "初手はアシレーヌかカバルドンが多いので初手ミミッキュ。相手にカバルドン → イダイトウ、アシレーヌ → ミミッキュ、両方 → ミミッキュが多い。"
+    },
+    {
+      "vs": "ゴースト一貫",
+      "pick": "未確認（記事では画像のみ）",
+      "plan": "初手のアシレーヌをポルターガイストで無理やり削る。"
+    }
   ],
   "threats": [
-    { "species": "Primarina", "note": "きつい。ただし初手に来やすく、ミミッキュ・ギルガルドで大きく削れる。" },
-    { "species": "Hippowdon", "note": "なまける持ちは倒しにくい。" },
-    { "species": "Indeedee", "note": "スカーフ持ち（性別・形態は未確認）は勝てない。" }
+    {
+      "species": "Primarina",
+      "note": "きつい。ただし初手に来やすく、ミミッキュ・ギルガルドで大きく削れる。"
+    },
+    {
+      "species": "Hippowdon",
+      "note": "なまける持ちは倒しにくい。"
+    },
+    {
+      "species": "Indeedee",
+      "note": "スカーフ持ち（性別・形態は未確認）は勝てない。"
+    }
   ]
 }

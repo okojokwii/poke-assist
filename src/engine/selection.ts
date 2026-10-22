@@ -76,7 +76,7 @@ export function adviseSelection(team: Team, oppSets: WeightedSet[][]): Selection
   const articleNotes = [
     ...team.threats.filter((t) => oppNames.has(t.species)).map((t) => `${enToJa('species', t.species)}: ${t.note}`),
     ...team.selection
-      .filter((s) => /アシレーヌ/.test(s.vs) ? oppNames.has('Primarina') : /カバルドン/.test(s.vs) ? oppNames.has('Hippowdon') : /アーマーガア/.test(s.vs) ? oppNames.has('Corviknight') : false)
+      .filter((s) => /アシレーヌ/.test(s.vs) ? oppNames.has('Primarina') : /カバルドン/.test(s.vs) ? oppNames.has('Hippowdon') : /アーマーガア/.test(s.vs) ? oppNames.has('Corviknight') || oppNames.has('Gengar') || oppNames.has('Umbreon') : false)
       .map((s) => `記事の方針（${s.vs}）: ${s.plan}`),
   ];
   return { picks: scored.slice(0, 3), dangers, articleNotes, matrix };

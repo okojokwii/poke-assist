@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 const BIN = fileURLToPath(new URL('../../tools/screen/pa-screen', import.meta.url));
 
 function run<T>(...args: string[]): T {
-  return JSON.parse(execFileSync(BIN, args, { encoding: 'utf8', timeout: 15_000 })) as T;
+  // 失敗時のメッセージは例外に載せて呼び出し側で扱う（端末に毎回出さない）
+  return JSON.parse(execFileSync(BIN, args, { encoding: 'utf8', timeout: 15_000, stdio: ['ignore', 'pipe', 'pipe'] })) as T;
 }
 
 export interface Rect {

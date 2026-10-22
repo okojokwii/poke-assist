@@ -53,7 +53,7 @@ npm run verify            # 記録のダメージが計算の範囲に入って�
 ### データの更新
 
 ```bash
-npm run fetch:usage                 # 先月の Smogon 使用率（BSS Reg M-C, 1630+）
+npm run fetch:usage                 # 先月の Smogon 使用率（BSS Reg M-C, 1500+）
 # 日本語名の表を作り直す時（PokeAPI の CSV を data/raw/ に置いてから）
 npm run build:names
 ```

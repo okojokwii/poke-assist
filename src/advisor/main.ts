@@ -217,7 +217,7 @@ async function liveLoop() {
       continue;
     }
     if (!screen.findWindow()) {
-      view.status = 'iPhone ミラーリングの窓を待っています';
+      view.status = 'iPhone ミラーリングの窓を待っています（アプリを開き、iPhone をロックして接続）';
       server.push();
       await sleep(IDLE_MS);
       continue;
