@@ -22,6 +22,7 @@ export class Tracker {
   private oppMons = new Map<string, MonState>();
   private megaUsed: [boolean, boolean] = [false, false];
   private oppSetCache = new Map<string, WeightedSet[]>();
+  private lastOppMove?: string;
 
   constructor(
     readonly team: Team,
@@ -38,6 +39,7 @@ export class Tracker {
     this.myMons.clear();
     this.oppMons.clear();
     this.megaUsed = [false, false];
+    this.lastOppMove = undefined;
   }
 
   oppSets(species: string): WeightedSet[] {
@@ -77,7 +79,17 @@ export class Tracker {
           st.megaEvolved = true;
           this.megaUsed[0] = true;
         }
-        if (myHp && myHp.max > 0) st.hp = myHp.cur / myHp.max;
+        if (myHp && myHp.max > 0) {
+          // HP の数字が減ったら「受けたダメージ」として記録する（答え合わせ用。急所・定数ダメージも混ざる）
+          const prev = this.myActive?.species === key ? this.myActive.hpRaw : undefined;
+          if (prev && myHp.cur < prev.cur && this.oppActive) {
+            this.match.damage.push({
+              turn: this.turn, dir: 'taken', attacker: this.oppActive.species, defender: key,
+              move: this.lastOppMove, before: prev.cur, after: myHp.cur, unit: 'hp',
+            });
+          }
+          st.hp = myHp.cur / myHp.max;
+        }
         this.myActive = { species: key, hpFrac: st.hp, hpRaw: myHp };
       }
     }
@@ -94,7 +106,15 @@ export class Tracker {
         st.set = { ...st.set, megaSpecies: st.set.megaSpecies ?? opp };
         this.megaUsed[1] = true;
       }
-      if (oppHpFrac !== undefined) st.hp = oppHpFrac;
+      if (oppHpFrac !== undefined) {
+        if (this.oppActive?.species === base && oppHpFrac < st.hp - 0.005 && this.myActive) {
+          this.match.damage.push({
+            turn: this.turn, dir: 'dealt', attacker: this.myActive.species, defender: base,
+            before: Math.round(st.hp * 1000) / 10, after: Math.round(oppHpFrac * 1000) / 10, unit: 'pct',
+          });
+        }
+        st.hp = oppHpFrac;
+      }
       this.oppActive = { species: base, hpFrac: st.hp };
     }
   }
@@ -110,6 +130,7 @@ export class Tracker {
 
   /** 画面の文から読めた技（相手の技は型の推定に足す） */
   onMoveSeen(side: 'mine' | 'opp', move: string) {
+    if (side === 'opp') this.lastOppMove = move;
     if (side === 'opp' && this.oppActive) {
       const st = this.oppMons.get(this.oppActive.species);
       if (st && !st.revealedMoves.includes(move)) st.revealedMoves.push(move);

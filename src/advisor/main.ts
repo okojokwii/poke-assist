@@ -1,6 +1,8 @@
 // 助言の本体（DESIGN.md §2・§8）。手で起動する版。
 //   npm run advise              ミラーリングの窓を見張り、助言の窓（http://127.0.0.1:8765）に出す
-//   npm run advise -- --replay <dir>   撮りためたスクショ（png）を順に流す（読み取りの精度を見る用）
+//   npm run advise -- --replay <dir>   撮りためたスクショ（png）を順に流す（読み取りの精度を見る用。--record で記録も残す）
+//   npm run advise -- --keep           変化した画面を captures/ に残す（読み取りの調整用）
+//   npm run advise -- --claude         Claude（Haiku）を読み合いの局面と選出で呼ぶ
 //
 // 普段は窓があるかを見るだけ。画面が変わった時だけ文字認識をし、技選択の画面で探索を回す。
 import { existsSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
@@ -21,6 +23,7 @@ const TEAM_PATH = process.env.PA_TEAM ?? 'data/team/s6_umeda.json';
 const CAPTURE_DIR = 'captures';
 const POLL_MS = 1500;
 const IDLE_MS = 5000;
+const REPLAY = process.argv.includes('--replay');
 
 const team = loadTeam(TEAM_PATH);
 const usage = loadLatestUsage();
@@ -52,8 +55,8 @@ function finishMatch(result: 'win' | 'lose' | 'draw' | 'unknown') {
   tracker.match.result = result;
   tracker.match.ended_at = new Date().toISOString();
   if (claude) tracker.match.tokens[claude.model] = { ...claude.usage };
-  const path = saveMatch(tracker.match);
-  note(`記録しました: ${path}`);
+  // 再生（--replay）は読み取りの確認用なので、--record が無ければ記録を残さない
+  if (!REPLAY || process.argv.includes('--record')) note(`記録しました: ${saveMatch(tracker.match)}`);
   claude?.close();
   claude = undefined;
   tracker.reset();

@@ -16,7 +16,8 @@
     "summarize": "tsx scripts/summarize.ts",
     "verify": "tsx scripts/verify-damage.ts",
     "selection": "tsx scripts/selection-demo.ts",
-    "demo": "tsx scripts/engine-demo.ts"
+    "demo": "tsx scripts/engine-demo.ts",
+    "calibrate": "tsx scripts/calibrate.ts"
   },
   "repository": {
     "type": "git",
