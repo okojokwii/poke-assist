@@ -12,6 +12,11 @@ export interface Layout {
   resultKeywords: string[];
   previewMinSpecies: number;
   moveSelectMinMoves: number;
+  /** 選出画面に出る言葉（相手の6匹は文字が無いので、この言葉で選出画面と判断する） */
+  previewKeywords: string[];
+  /** 選出画面で自分の6匹が並ぶ列の右端 */
+  mySideMaxX: number;
+  oppIconSlots: { top: number; step: number; h: number; spriteX: number; spriteW: number; typesX: number; typesW: number; typesH: number };
 }
 
 export function loadLayout(path = 'config/layout.json'): Layout {
@@ -58,7 +63,9 @@ export function readBoxes(boxes: OcrBox[], layout: Layout, myMoves: string[]): R
   }
   const myMoveHits = moves.filter((m) => myMoves.includes(m.en)).length;
   let kind: ScreenKind = 'other';
+  const previewWord = boxes.some((b) => layout.previewKeywords.some((k) => b.text.includes(k)));
   if (resultText) kind = 'result';
+  else if (previewWord) kind = 'preview';
   else if (myMoveHits >= layout.moveSelectMinMoves) kind = 'move_select';
   else if (species.length >= layout.previewMinSpecies) kind = 'preview';
   else if (species.length >= 1 || hpNumbers.length) kind = 'battle';

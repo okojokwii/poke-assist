@@ -7,6 +7,7 @@
 //   pa-screen bar <png> x,y,w,h            HP バーの残りの割合 → {"fraction":…, "color":"green|yellow|red|none"}
 //   pa-screen hash <png>                   画面が変わったかを見るための 64bit の指紋 → {"hash":"…"}
 //   pa-screen crop <png> x,y,w,h <out.png> 範囲を切り出して保存（調整用）
+//   pa-screen sig <png> x,y,w,h [...]      アイコンの見分け用の特徴（16×16 の RGB、0〜255 の 768 個）。範囲は複数指定できる
 //
 // ビルド: npm run build:screen（swiftc）。初回の capture で「画面収録」の許可を求められる。
 
@@ -156,6 +157,19 @@ func dhash(_ img: CGImage) -> String {
     return String(format: "%016llx", bits)
 }
 
+/// 16×16 に縮めた RGB。同じゲームの同じ表示どうしなら近い値になる（選出画面の相手のアイコンを見分ける用）
+func signature(_ img: CGImage) -> [Int] {
+    let n = 16
+    let ctx = CGContext(data: nil, width: n, height: n, bitsPerComponent: 8, bytesPerRow: n * 4,
+                        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    ctx.interpolationQuality = .high
+    ctx.draw(img, in: CGRect(x: 0, y: 0, width: n, height: n))
+    let p = ctx.data!.bindMemory(to: UInt8.self, capacity: n * n * 4)
+    var out: [Int] = []
+    for i in 0..<(n * n) { out += [Int(p[i * 4]), Int(p[i * 4 + 1]), Int(p[i * 4 + 2])] }
+    return out
+}
+
 func save(_ img: CGImage, _ path: String) {
     let rep = NSBitmapImageRep(cgImage: img)
     guard let png = rep.representation(using: .png, properties: [:]) else { fail("保存できない") }
@@ -188,6 +202,10 @@ case "bar":
 case "hash":
     guard args.count >= 3 else { fail("hash <png>") }
     emit(["hash": dhash(loadImage(args[2]))])
+case "sig":
+    guard args.count >= 4 else { fail("sig <png> x,y,w,h [...]") }
+    let img = loadImage(args[2])
+    emit(args[3...].map { signature(crop(img, parseRect($0))) })
 case "crop":
     guard args.count >= 5 else { fail("crop <png> x,y,w,h <out.png>") }
     save(crop(loadImage(args[2]), parseRect(args[3])), args[4])

@@ -1,9 +1,38 @@
 {
   "verified": false,
-  "note": "実機のスクショで未調整（2026-10-22）。npm run calibrate -- <png> で文字の位置を出し、この値を直す。座標はすべて窓に対する 0〜1 の割合（左上原点）。",
+  "note": "2026-10-22 に実機の選出画面（1720×872 で撮影）で一部調整。座標はすべて窓に対する 0〜1 の割合（左上原点）。npm run calibrate -- <png> で確かめる。",
   "oppSideMaxY": 0.5,
-  "hpBarFromName": { "dx": 0.0, "dy": 0.01, "w": 0.3, "h": 0.025 },
-  "resultKeywords": ["かち", "まけ", "勝ち", "負け", "WIN", "LOSE", "ひきわけ", "引き分け"],
+  "hpBarFromName": {
+    "dx": 0.0,
+    "dy": 0.01,
+    "w": 0.3,
+    "h": 0.025
+  },
+  "resultKeywords": [
+    "かち",
+    "まけ",
+    "勝ち",
+    "負け",
+    "WIN",
+    "LOSE",
+    "ひきわけ",
+    "引き分け"
+  ],
   "previewMinSpecies": 4,
-  "moveSelectMinMoves": 2
+  "moveSelectMinMoves": 2,
+  "previewKeywords": [
+    "選出してください",
+    "匹選出"
+  ],
+  "mySideMaxX": 0.5,
+  "oppIconSlots": {
+    "top": 0.1961,
+    "step": 0.1044,
+    "h": 0.085,
+    "spriteX": 0.756,
+    "spriteW": 0.07,
+    "typesX": 0.83,
+    "typesW": 0.045,
+    "typesH": 0.045
+  }
 }

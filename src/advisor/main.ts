@@ -5,7 +5,7 @@
 //   npm run advise -- --claude         Claude（Haiku）を読み合いの局面と選出で呼ぶ
 //
 // 普段は窓があるかを見るだけ。画面が変わった時だけ文字認識をし、技選択の画面で探索を回す。
-import { existsSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, copyFileSync, readFileSync } from 'node:fs';
 import { loadTeam } from '../dex/sets.js';
 import { loadLatestUsage } from '../usage/usage.js';
 import { screen, hashDistance } from '../reader/screen.js';
@@ -13,7 +13,8 @@ import { hpBarRegion, loadLayout, readBoxes, splitSides, type ReadResult } from 
 import { search } from '../engine/search.js';
 import { explain, predictOpponent, type Advice } from '../engine/explain.js';
 import { adviseSelection } from '../engine/selection.js';
-import { enToJa } from '../dex/names.js';
+import { enToJa, jaToEn } from '../dex/names.js';
+import { identify, learn, saveSlotImages, slotSignatures } from '../reader/icons.js';
 import { saveMatch } from '../match/log.js';
 import { ClaudeSession } from '../claude/session.js';
 import { Tracker } from './tracker.js';
@@ -42,6 +43,9 @@ const view: View = {
 const server = startServer(view, {
   onPick: (species) => tracker.setMyPick(species),
   onNewMatch: () => finishMatch('unknown'),
+  onOppNames: (names) => onOppNames(names),
+  slotDir: `${CAPTURE_DIR}/slots`,
+  speciesNames: Object.keys(JSON.parse(readFileSync('data/dex/ja.json', 'utf8')).species as Record<string, string>),
 });
 
 let claude: ClaudeSession | undefined;
@@ -87,20 +91,21 @@ async function handleFrame(png: string) {
     return;
   }
   if (r.kind === 'preview') {
-    const { opp } = splitSides(r, layout);
-    const names = [...new Set(opp.map((o) => o.en))];
-    if (names.length >= layout.previewMinSpecies && names.join() !== tracker.match.oppTeam.join()) {
-      tracker.onPreview(names);
-      note(`相手の6匹: ${names.map((n) => enToJa('species', n)).join('・')}`);
-      const sel = adviseSelection(team, names.map((n) => tracker.oppSets(n)));
-      view.selection = {
-        picks: sel.picks.map((p) => ({ mons: p.mons.map((m) => enToJa('species', m)), lead: enToJa('species', p.lead), score: p.score })),
-        dangers: sel.dangers.map((d) => enToJa('species', d)),
-        notes: sel.articleNotes,
-      };
-      tracker.match.selectionAdvice = sel.picks.map((p) => `${p.mons.join('/')} 先発${p.lead}`);
+    // 相手の6匹はアイコンだけなので、見た目で見分ける。知らないアイコンは助言の窓で本人が名前を入れる
+    const sigs = slotSignatures(png, layout);
+    const key = sigs.map((x) => x.slice(0, 12).join(',')).join('|');
+    if (key === lastPreviewKey) return;
+    lastPreviewKey = key;
+    pendingSigs = sigs;
+    const guesses = identify(sigs);
+    saveSlotImages(png, layout, `${CAPTURE_DIR}/slots`);
+    view.oppSlots = guesses.map((g) => ({ ja: g.species ? enToJa('species', g.species) : '', known: !!g.species }));
+    view.slotVersion = Date.now();
+    tracker.onPreview([]);
+    if (guesses.every((g) => g.species)) runSelection(guesses.map((g) => g.species!));
+    else {
+      note('相手の6匹のうち知らないアイコンがある。助言の窓で名前を入れてください');
       server.push();
-      if (view.useClaude && !view.light) void askSelection(names, sel.articleNotes);
     }
     return;
   }
@@ -117,6 +122,36 @@ async function handleFrame(png: string) {
     }
   }
   if (r.kind === 'move_select') await adviseTurn();
+}
+
+let lastPreviewKey = '';
+let pendingSigs: number[][] = [];
+
+/** 相手の6匹が分かったら選出の助言を出す */
+function runSelection(names: string[]) {
+  tracker.onPreview(names);
+  note(`相手の6匹: ${names.map((n) => enToJa('species', n)).join('・')}`);
+  const sel = adviseSelection(team, names.map((n) => tracker.oppSets(n)));
+  view.selection = {
+    picks: sel.picks.map((p) => ({ mons: p.mons.map((m) => enToJa('species', m)), lead: enToJa('species', p.lead), score: p.score })),
+    dangers: sel.dangers.map((d) => enToJa('species', d)),
+    notes: sel.articleNotes,
+  };
+  tracker.match.selectionAdvice = sel.picks.map((p) => `${p.mons.join('/')} 先発${p.lead}`);
+  server.push();
+  if (view.useClaude && !view.light) void askSelection(names, sel.articleNotes);
+}
+
+/** 助言の窓で本人が入れた相手の6匹の名前。覚えて次から自動で見分ける */
+function onOppNames(jaNames: string[]): string | undefined {
+  const en = jaNames.map((n) => (n.trim() ? jaToEn('species', n) : undefined));
+  const bad = jaNames.filter((n, i) => n.trim() && !en[i]);
+  if (bad.length) return `名前が分からない: ${bad.join('・')}`;
+  if (en.some((x) => !x)) return '6匹すべて入れてください';
+  learn(en.map((species, i) => ({ species: species!, sig: pendingSigs[i] ?? [] })).filter((p) => p.sig.length));
+  view.oppSlots = en.map((s) => ({ ja: enToJa('species', s!), known: true }));
+  runSelection(en as string[]);
+  return undefined;
 }
 
 async function adviseTurn() {
