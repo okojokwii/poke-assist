@@ -1,7 +1,7 @@
 // 画面の取得と読み取りの小さな道具（DESIGN.md §3）。TypeScript 側から子プロセスとして呼ぶ。
 // 画像は手元で処理し、外へは送らない。出力はすべて JSON（標準出力）。
 //
-//   pa-screen find                         iPhone ミラーリングの窓を探す → {"id":…, "x":…, "y":…, "w":…, "h":…}
+//   pa-screen find                         iPhone ミラーリングの窓を探す → {"id":…, "x":…, "y":…, "w":…, "h":…, "onscreen":…}
 //   pa-screen capture <out.png>            その窓を撮る（窓の影なし）
 //   pa-screen ocr <png> [x,y,w,h]          文字認識。範囲は 0〜1 の割合（左上原点）→ [{"text":…, "conf":…, "x":…, "y":…, "w":…, "h":…}]
 //   pa-screen bar <png> x,y,w,h            HP バーの残りの割合 → {"fraction":…, "color":"green|yellow|red|none"}
@@ -30,9 +30,11 @@ func fail(_ msg: String) -> Never {
 let mirroringOwners = ["iPhone Mirroring", "iPhoneミラーリング", "iPhone ミラーリング"]
 
 func findWindow() -> [String: Any]? {
-    guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
+    // 別のデスクトップ（操作スペース）や最小化中の窓も見つけられるよう、全部の窓から探す。見えているかは onscreen で返す
+    guard let list = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] else {
         return nil
     }
+    var hidden: [String: Any]?
     for w in list {
         let owner = w[kCGWindowOwnerName as String] as? String ?? ""
         let isMirroring = mirroringOwners.contains(owner) || owner.contains("iPhone") || owner.contains("ミラーリング")
@@ -40,12 +42,16 @@ func findWindow() -> [String: Any]? {
         // 初回の案内（「ようこそiPhoneミラーリングへ」）や設定の窓は対象外。iPhone の画面が映った窓だけを見る
         let title = w[kCGWindowName as String] as? String ?? ""
         if title.contains("ようこそ") || title.contains("Welcome") { continue }
-        let b = w[kCGWindowBounds as String] as? [String: CGFloat] ?? [:]
+        // 大きさは NSNumber の辞書で来るので CGRect に直して読む（[String: CGFloat] への変換は失敗する）
+        guard let dict = w[kCGWindowBounds as String] as! CFDictionary?, let r = CGRect(dictionaryRepresentation: dict) else { continue }
         // メニューバーの細い窓（高さ 33 など）を除く
-        guard let width = b["Width"], let height = b["Height"], width > 200, height > 200 else { continue }
-        return ["id": w[kCGWindowNumber as String] as? Int ?? 0, "x": b["X"] ?? 0, "y": b["Y"] ?? 0, "w": width, "h": b["Height"] ?? 0]
+        guard r.width > 200, r.height > 200 else { continue }
+        let info: [String: Any] = ["id": w[kCGWindowNumber as String] as? Int ?? 0, "x": r.minX, "y": r.minY, "w": r.width, "h": r.height,
+                                   "onscreen": (w[kCGWindowIsOnscreen as String] as? Bool) ?? false]
+        if info["onscreen"] as? Bool == true { return info }
+        hidden = hidden ?? info
     }
-    return nil
+    return hidden
 }
 
 func loadImage(_ path: String) -> CGImage {

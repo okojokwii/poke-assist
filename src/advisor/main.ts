@@ -216,7 +216,9 @@ async function liveLoop() {
       await sleep(IDLE_MS);
       continue;
     }
-    if (!screen.findWindow()) {
+    // 別のデスクトップにある（画面に出ていない）窓も撮れることを確かめた（2026-10-22）ので、見えているかは問わない
+    const win = screen.findWindow();
+    if (!win) {
       view.status = 'iPhone ミラーリングの窓を待っています（アプリを開き、iPhone をロックして接続）';
       server.push();
       await sleep(IDLE_MS);

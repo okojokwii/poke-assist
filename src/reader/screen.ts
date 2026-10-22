@@ -24,9 +24,9 @@ const rectArg = (r: Rect) => [r.x, r.y, r.w, r.h].map((v) => Math.max(0, Math.mi
 
 export const screen = {
   /** ミラーリングの窓があるか */
-  findWindow(): Rect | undefined {
+  findWindow(): (Rect & { onscreen: boolean }) | undefined {
     try {
-      return run<Rect>('find');
+      return run<Rect & { onscreen: boolean }>('find');
     } catch {
       return undefined;
     }
