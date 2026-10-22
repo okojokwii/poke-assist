@@ -76,11 +76,20 @@ export function adviseSelection(team: Team, oppSets: WeightedSet[][]): Selection
   const articleNotes = [
     ...team.threats.filter((t) => oppNames.has(t.species)).map((t) => `${enToJa('species', t.species)}: ${t.note}`),
     ...team.selection
-      .filter((s) => /アシレーヌ/.test(s.vs) ? oppNames.has('Primarina') : /カバルドン/.test(s.vs) ? oppNames.has('Hippowdon') : /アーマーガア/.test(s.vs) ? oppNames.has('Corviknight') || oppNames.has('Gengar') || oppNames.has('Umbreon') : false)
+      .filter((s) => SELECTION_TRIGGERS.some(([re, sp]) => re.test(s.vs) && sp.some((x) => oppNames.has(x))))
       .map((s) => `記事の方針（${s.vs}）: ${s.plan}`),
   ];
   return { picks: scored.slice(0, 3), dangers, articleNotes, matrix };
 }
+
+// 構築記事の選出方針を出す条件（方針の見出しの言葉 → 相手にいれば出すポケモン）
+const SELECTION_TRIGGERS: [RegExp, string[]][] = [
+  [/アシレーヌ/, ['Primarina']],
+  [/カバルドン/, ['Hippowdon']],
+  [/アーマーガア|ゲンガー|ブラッキー/, ['Corviknight', 'Gengar', 'Umbreon']],
+  [/ミミッキュ/, ['Mimikyu']],
+  [/ルカリオ/, ['Lucario']],
+];
 
 function permutations<T>(xs: T[]): T[][] {
   if (xs.length <= 1) return [xs];

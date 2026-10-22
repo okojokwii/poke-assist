@@ -37,8 +37,12 @@ func findWindow() -> [String: Any]? {
         let owner = w[kCGWindowOwnerName as String] as? String ?? ""
         let isMirroring = mirroringOwners.contains(owner) || owner.contains("iPhone") || owner.contains("ミラーリング")
         guard isMirroring, (w[kCGWindowLayer as String] as? Int) == 0 else { continue }
+        // 初回の案内（「ようこそiPhoneミラーリングへ」）や設定の窓は対象外。iPhone の画面が映った窓だけを見る
+        let title = w[kCGWindowName as String] as? String ?? ""
+        if title.contains("ようこそ") || title.contains("Welcome") { continue }
         let b = w[kCGWindowBounds as String] as? [String: CGFloat] ?? [:]
-        guard let width = b["Width"], width > 100 else { continue }
+        // メニューバーの細い窓（高さ 33 など）を除く
+        guard let width = b["Width"], let height = b["Height"], width > 200, height > 200 else { continue }
         return ["id": w[kCGWindowNumber as String] as? Int ?? 0, "x": b["X"] ?? 0, "y": b["Y"] ?? 0, "w": width, "h": b["Height"] ?? 0]
     }
     return nil
