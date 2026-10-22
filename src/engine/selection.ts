@@ -87,7 +87,7 @@ const SELECTION_TRIGGERS: [RegExp, string[]][] = [
   [/アシレーヌ/, ['Primarina']],
   [/カバルドン/, ['Hippowdon']],
   [/アーマーガア|ゲンガー|ブラッキー/, ['Corviknight', 'Gengar', 'Umbreon']],
-  [/ミミッキュ/, ['Mimikyu']],
+  [/ミミッキュ|リザードン|ブリジュラス/, ['Mimikyu', 'Charizard', 'Archaludon']],
   [/ルカリオ/, ['Lucario']],
 ];
 
