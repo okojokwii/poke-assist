@@ -14,7 +14,9 @@
     "calc": "tsx scripts/calc.ts",
     "advise": "tsx src/advisor/main.ts",
     "summarize": "tsx scripts/summarize.ts",
-    "verify": "tsx scripts/verify-damage.ts"
+    "verify": "tsx scripts/verify-damage.ts",
+    "selection": "tsx scripts/selection-demo.ts",
+    "demo": "tsx scripts/engine-demo.ts"
   },
   "repository": {
     "type": "git",

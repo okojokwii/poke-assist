@@ -21,3 +21,8 @@ for (const depth of [1, 2]) {
   console.log(`depth ${r.depthReached}: ${Date.now() - t}ms value=${r.value.toFixed(3)}`);
   for (const c of r.candidates.slice(0, 4)) console.log('  ', JSON.stringify(c.action), (c.prob * 100).toFixed(0) + '%', c.value.toFixed(3), 'worst', c.worst.toFixed(3), JSON.stringify(c.worstReply));
 }
+
+import { explain, predictOpponent } from '../src/engine/explain.js';
+const r2 = search(state, { depth: 2, oppActiveSets: likelySets(db, opp[0]!.species, 3) });
+for (const a of explain(state, r2)) console.log(`${a.label}（${Math.round(a.prob * 100)}%）: ${a.reason}`);
+console.log('相手の予想:', predictOpponent(state, r2));

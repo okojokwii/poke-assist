@@ -1,0 +1,258 @@
+// 助言の本体（DESIGN.md §2・§8）。手で起動する版。
+//   npm run advise              ミラーリングの窓を見張り、助言の窓（http://127.0.0.1:8765）に出す
+//   npm run advise -- --replay <dir>   撮りためたスクショ（png）を順に流す（読み取りの精度を見る用）
+//
+// 普段は窓があるかを見るだけ。画面が変わった時だけ文字認識をし、技選択の画面で探索を回す。
+import { existsSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
+import { loadTeam } from '../dex/sets.js';
+import { loadLatestUsage } from '../usage/usage.js';
+import { screen, hashDistance } from '../reader/screen.js';
+import { hpBarRegion, loadLayout, readBoxes, splitSides, type ReadResult } from '../reader/parse.js';
+import { search } from '../engine/search.js';
+import { explain, predictOpponent, type Advice } from '../engine/explain.js';
+import { adviseSelection } from '../engine/selection.js';
+import { enToJa } from '../dex/names.js';
+import { saveMatch } from '../match/log.js';
+import { ClaudeSession } from '../claude/session.js';
+import { Tracker } from './tracker.js';
+import { startServer, type View } from './server.js';
+
+const TEAM_PATH = process.env.PA_TEAM ?? 'data/team/s6_umeda.json';
+const CAPTURE_DIR = 'captures';
+const POLL_MS = 1500;
+const IDLE_MS = 5000;
+
+const team = loadTeam(TEAM_PATH);
+const usage = loadLatestUsage();
+const layout = loadLayout();
+const tracker = new Tracker(team, usage);
+const myMoves = [...new Set(team.members.flatMap((m) => m.moves))];
+
+const view: View = {
+  status: '起動',
+  paused: false,
+  light: false,
+  useClaude: process.argv.includes('--claude'),
+  team: team.members.map((m) => ({ species: m.species, ja: enToJa('species', m.species) })),
+  log: [],
+};
+const server = startServer(view, {
+  onPick: (species) => tracker.setMyPick(species),
+  onNewMatch: () => finishMatch('unknown'),
+});
+
+let claude: ClaudeSession | undefined;
+function note(msg: string) {
+  view.log = [`${new Date().toLocaleTimeString()} ${msg}`, ...view.log].slice(0, 30);
+  server.push();
+}
+
+function finishMatch(result: 'win' | 'lose' | 'draw' | 'unknown') {
+  if (tracker.phase === 'idle') return;
+  tracker.match.result = result;
+  tracker.match.ended_at = new Date().toISOString();
+  if (claude) tracker.match.tokens[claude.model] = { ...claude.usage };
+  const path = saveMatch(tracker.match);
+  note(`記録しました: ${path}`);
+  claude?.close();
+  claude = undefined;
+  tracker.reset();
+  view.selection = view.advice = view.oppPrediction = view.board = undefined;
+  view.claudeNote = undefined;
+}
+
+// ---- 画面1枚の処理 ----
+
+function oppHpFromBar(png: string, r: ReadResult, oppName?: { box: ReadResult['species'][number]['box'] }) {
+  if (!oppName) return undefined;
+  try {
+    const bar = screen.bar(png, hpBarRegion(oppName.box, layout));
+    return bar.color === 'none' ? undefined : bar.fraction;
+  } catch {
+    return undefined;
+  }
+}
+
+async function handleFrame(png: string) {
+  const boxes = screen.ocr(png);
+  const r = readBoxes(boxes, layout, myMoves);
+  view.screenKind = r.kind;
+
+  if (r.kind === 'result') {
+    const t = r.resultText ?? '';
+    finishMatch(/かち|勝ち|WIN/i.test(t) ? 'win' : /まけ|負け|LOSE/i.test(t) ? 'lose' : /ひきわけ|引き分け/.test(t) ? 'draw' : 'unknown');
+    return;
+  }
+  if (r.kind === 'preview') {
+    const { opp } = splitSides(r, layout);
+    const names = [...new Set(opp.map((o) => o.en))];
+    if (names.length >= layout.previewMinSpecies && names.join() !== tracker.match.oppTeam.join()) {
+      tracker.onPreview(names);
+      note(`相手の6匹: ${names.map((n) => enToJa('species', n)).join('・')}`);
+      const sel = adviseSelection(team, names.map((n) => tracker.oppSets(n)));
+      view.selection = {
+        picks: sel.picks.map((p) => ({ mons: p.mons.map((m) => enToJa('species', m)), lead: enToJa('species', p.lead), score: p.score })),
+        dangers: sel.dangers.map((d) => enToJa('species', d)),
+        notes: sel.articleNotes,
+      };
+      tracker.match.selectionAdvice = sel.picks.map((p) => `${p.mons.join('/')} 先発${p.lead}`);
+      server.push();
+      if (view.useClaude && !view.light) void askSelection(names, sel.articleNotes);
+    }
+    return;
+  }
+  if (r.kind === 'move_select' || r.kind === 'battle') {
+    const { mine, opp } = splitSides(r, layout);
+    const myName = mine[0]?.en;
+    const oppName = opp[0];
+    // 自分の HP の数字は自分側（画面の下）にある
+    const myHp = r.hpNumbers.find((h) => h.box.y >= layout.oppSideMaxY);
+    tracker.onBattleFrame(myName, oppName?.en, myHp ? { cur: myHp.cur, max: myHp.max } : undefined, oppHpFromBar(png, r, oppName));
+    for (const m of r.moves) {
+      // 技選択の画面に出ている自分の技は除き、それ以外（相手の行動の文）を相手の技として数える
+      if (r.kind === 'battle' && !myMoves.includes(m.en)) tracker.onMoveSeen('opp', m.en);
+    }
+  }
+  if (r.kind === 'move_select') await adviseTurn();
+}
+
+async function adviseTurn() {
+  const state = tracker.battleState();
+  if (!state) {
+    view.status = '場のポケモンが読めない（両方の名前が必要）';
+    server.push();
+    return;
+  }
+  tracker.onTurnStart();
+  const t = Date.now();
+  const r = search(state, { depth: view.light ? 1 : 2, oppActiveSets: tracker.oppActiveSets(), timeLimitMs: 6000 });
+  const advice: Advice[] = explain(state, r);
+  const pred = predictOpponent(state, r);
+  view.advice = advice;
+  view.oppPrediction = pred;
+  view.board = {
+    mine: `${enToJa('species', tracker.myActive!.species)} ${Math.round(tracker.myActive!.hpFrac * 100)}%`,
+    opp: `${enToJa('species', tracker.oppActive!.species)} ${Math.round(tracker.oppActive!.hpFrac * 100)}%`,
+    turn: tracker.turn,
+    ms: Date.now() - t,
+    depth: r.depthReached,
+  };
+  view.claudeNote = undefined;
+  tracker.match.turns.push({
+    turn: tracker.turn,
+    at: new Date().toISOString(),
+    myActive: tracker.myActive?.species,
+    myHp: tracker.myActive?.hpRaw,
+    oppActive: tracker.oppActive?.species,
+    oppHpPct: tracker.oppActive ? Math.round(tracker.oppActive.hpFrac * 100) : undefined,
+    advice,
+    oppPrediction: pred,
+    events: [],
+  });
+  server.push();
+  // 読み合いの局面（上位2つの確率が近い、または均衡が混合）だけ Claude を呼ぶ（DESIGN.md §6）
+  const top = r.candidates;
+  const contested = top.length >= 2 && top[1]!.prob > 0.25;
+  if (view.useClaude && contested) void askTurn(advice, pred);
+}
+
+// ---- Claude ----
+
+async function askSelection(names: string[], notes: string[]) {
+  claude ??= new ClaudeSession('haiku');
+  try {
+    const sel = view.selection!;
+    const reply = await claude.ask(
+      [
+        `選出画面。相手の6匹: ${names.map((n) => enToJa('species', n)).join('・')}`,
+        `自分の6匹: ${team.members.map((m) => `${enToJa('species', m.species)}（${m.role ?? ''}）`).join(' / ')}`,
+        `計算での選出候補: ${sel.picks.map((p) => `${p.mons.join('・')}（先発${p.lead}）`).join(' / ')}`,
+        notes.length ? `構築記事のメモ: ${notes.join(' / ')}` : '',
+        '相手の先発の予想と、選出の注意点を3行以内で。',
+      ].join('\n'),
+    );
+    view.claudeNote = reply.text;
+    server.push();
+  } catch (e) {
+    note(`Claude の呼び出しに失敗: ${(e as Error).message}`);
+  }
+}
+
+async function askTurn(advice: Advice[], pred: { label: string; prob: number }[]) {
+  claude ??= new ClaudeSession('haiku');
+  try {
+    const reply = await claude.ask(
+      [
+        `ターン${tracker.turn}。自分: ${view.board?.mine} / 相手: ${view.board?.opp}`,
+        `計算の候補: ${advice.map((a) => `${a.label}(${Math.round(a.prob * 100)}%): ${a.reason}`).join(' | ')}`,
+        `相手の手の予想: ${pred.map((p) => `${p.label}(${Math.round(p.prob * 100)}%)`).join(' / ')}`,
+        '読み合いの観点で一言（2行以内）。',
+      ].join('\n'),
+    );
+    view.claudeNote = reply.text;
+    const last = tracker.match.turns.at(-1);
+    if (last) last.claude = reply.text;
+    server.push();
+  } catch (e) {
+    note(`Claude の呼び出しに失敗: ${(e as Error).message}`);
+  }
+}
+
+// ---- ループ ----
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function liveLoop() {
+  if (!existsSync(CAPTURE_DIR)) mkdirSync(CAPTURE_DIR);
+  const png = `${CAPTURE_DIR}/latest.png`;
+  let lastHash = '';
+  let saved = 0;
+  for (;;) {
+    if (view.paused) {
+      view.status = '一時停止中';
+      await sleep(IDLE_MS);
+      continue;
+    }
+    if (!screen.findWindow()) {
+      view.status = 'iPhone ミラーリングの窓を待っています';
+      server.push();
+      await sleep(IDLE_MS);
+      continue;
+    }
+    try {
+      screen.capture(png);
+      const h = screen.hash(png);
+      if (lastHash && hashDistance(h, lastHash) <= 3) {
+        await sleep(POLL_MS);
+        continue;
+      }
+      lastHash = h;
+      // 読み取りの調整用に、変化した画面を残す（captures/ は git に入れない）
+      if (process.argv.includes('--keep')) copyFileSync(png, `${CAPTURE_DIR}/${Date.now()}_${saved++}.png`);
+      view.status = '対戦を見ています';
+      await handleFrame(png);
+    } catch (e) {
+      view.status = `エラー: ${(e as Error).message.split('\n')[0]}`;
+      server.push();
+      await sleep(IDLE_MS);
+    }
+    await sleep(POLL_MS);
+  }
+}
+
+async function replay(dir: string) {
+  const files = readdirSync(dir).filter((f) => f.endsWith('.png')).sort();
+  for (const f of files) {
+    view.status = `再生: ${f}`;
+    await handleFrame(`${dir}/${f}`);
+    note(`${f}: ${view.screenKind}`);
+    await sleep(Number(process.env.PA_REPLAY_MS ?? 800));
+  }
+  finishMatch('unknown');
+  view.status = '再生終了';
+  server.push();
+}
+
+const ri = process.argv.indexOf('--replay');
+if (ri >= 0) await replay(process.argv[ri + 1] ?? CAPTURE_DIR);
+else await liveLoop();

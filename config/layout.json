@@ -1,0 +1,9 @@
+{
+  "verified": false,
+  "note": "実機のスクショで未調整（2026-10-22）。npm run calibrate -- <png> で文字の位置を出し、この値を直す。座標はすべて窓に対する 0〜1 の割合（左上原点）。",
+  "oppSideMaxY": 0.5,
+  "hpBarFromName": { "dx": 0.0, "dy": 0.01, "w": 0.3, "h": 0.025 },
+  "resultKeywords": ["かち", "まけ", "勝ち", "負け", "WIN", "LOSE", "ひきわけ", "引き分け"],
+  "previewMinSpecies": 4,
+  "moveSelectMinMoves": 2
+}
